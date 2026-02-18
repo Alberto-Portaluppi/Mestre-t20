@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mestre T20 - Suíte Completa</title>
+    <style>
+        :root {
+            --primary: #b91d1d;
+            --secondary: #1a1a1a;
+            --accent: #e63946;
+            --bg: #f4f5f6;
+            --card-bg: #ffffff;
+            --text: #333;
+            --border: #ddd;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .app-container { background: var(--card-bg); width: 100%; max-width: 1000px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; min-height: 80vh; }
+        
+        .header { background: var(--secondary); padding: 20px; text-align: center; color: white; border-bottom: 4px solid var(--primary); }
+        .header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; text-transform: uppercase; }
+        
+        .tabs { display: flex; background: #2c2c2c; flex-wrap: wrap; }
+        .tab-btn { flex: 1; padding: 15px; background: none; border: none; color: #aaa; font-weight: bold; cursor: pointer; transition: 0.3s; border-bottom: 3px solid transparent; }
+        .tab-btn:hover { color: white; background: #333; }
+        .tab-btn.active { color: white; border-bottom-color: var(--primary); background: #333; }
+        
+        .section { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .controls { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; padding: 15px; background: #fafafa; border-radius: 8px; border: 1px solid var(--border); align-items: end; }
+        .control-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
+        label { font-weight: bold; font-size: 0.85rem; color: #555; text-transform: uppercase; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+        
+        button.action-btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; height: 42px; }
+        button.action-btn:hover { background: #a01818; }
+        button.secondary-btn { background: #666; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+
+        .table-container { overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        thead { background: #eee; position: sticky; top: 0; z-index: 10; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { font-size: 0.9rem; color: #444; }
+        tr:hover { background: #fff0f0; }
+        .action-buttons { display: flex; gap: 8px; }
+        .add-btn { color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: transform 0.1s; }
+        .add-btn:hover { transform: scale(1.1); }
+        .btn-xp { background: var(--secondary); }
+
+        /* XP e Log */
+        .xp-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .xp-card { background: var(--secondary); color: white; padding: 20px; border-radius: 8px; text-align: center; position: relative; }
+        .xp-card h3 { margin: 0 0 10px 0; font-size: 0.9rem; opacity: 0.8; }
+        .xp-card .value { font-size: 2rem; font-weight: bold; }
+        .level-up-badge { position: absolute; top: -10px; right: -10px; background: #f1c40f; color: black; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; animation: bounce 1s infinite; display: none; }
+        
+        .log-box { background: #1a1a1a; color: #00ff00; font-family: 'Courier New', monospace; padding: 15px; border-radius: 5px; height: 200px; overflow-y: auto; font-size: 0.9rem; margin-top: 10px; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        
+        @media (max-width: 600px) { .controls { flex-direction: column; align-items: stretch; } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>Mestre T20</h1>
+        <small>Calculadora • Bestiário • XP</small>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tab-btn-calc" onclick="showTab('calc', this)">Encontros</button>
+        <button class="tab-btn" id="tab-btn-bestiary" onclick="showTab('bestiary', this)">Bestiário</button>
+        <button class="tab-btn" id="tab-btn-xp" onclick="showTab('xp', this)">XP Group</button>
+    </div>
+
+    <div id="calc" class="section active">
+        <div class="controls" style="background: var(--secondary); border: none; color: white;">
+            <div class="control-group">
+                <label style="color: #aaa;">Nível do Grupo</label>
+                <input type="number" id="calc-level" value="1" min="1" max="20" onchange="updateCalc()" style="background: #333; color: white; border: none;">
+            </div>
+            <div class="control-group">
+                <label style="color: #aaa;">Jogadores</label>
+                <input type="number" id="calc-players" value="4" min="1" max="10" onchange="updateCalc()" style="background: #333; color: white; border: none;">
+            </div>
+        </div>
+
+        <div style="background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">Lista de Ameaças</h3>
+                <button class="secondary-btn" onclick="clearEncounter()">Limpar Tudo</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end;">
+                <div class="control-group" style="flex: 2;">
+                    <label>Adicionar Genérico (ND)</label>
+                   <select id="builder-nd">
+                        <option value="0.25">1/4</option><option value="0.5">1/2</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                        <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                        <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                        <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                        <option value="19">19</option><option value="20">20</option>
+                    </select>
+                </div>
+                <div class="control-group" style="flex: 1;">
+                    <label>Qtd.</label>
+                    <input type="number" id="builder-qty" value="1" min="1">
+                </div>
+                <button class="action-btn" onclick="addManualMonster()">Adicionar</button>
+            </div>
+
+            <div id="encounter-list" style="border: 1px dashed #ccc; border-radius: 5px; padding: 10px; min-height: 50px; margin-bottom: 15px; background: #fafafa;">
+                </div>
+
+            <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 5px; padding: 15px; text-align: center;">
+                <div style="font-size: 0.9rem; color: #555; margin-bottom: 5px;">Dificuldade Estimada</div>
+                <div id="encounter-diff-badge" style="font-size: 2rem; font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">-</div>
+                <div style="font-size: 0.85rem; color: #777;">ND Total do Encontro: <strong id="encounter-final-nd">0</strong></div>
+                <button id="btn-encounter-xp" class="action-btn" style="margin-top: 15px; display: none; width: 100%;" onclick="rewardEncounterXP()">🏆 Dar <span id="xp-total-val">0</span> XP ao Grupo</button>
+            </div>
+
+            <div style="margin-top: 15px; display: flex; justify-content: space-between; font-size: 0.8rem; color: #666; background: #eee; padding: 8px; border-radius: 4px;">
+                <span id="thresh-facil">Fácil: ND X</span>
+                <span id="thresh-normal">Normal: ND X</span>
+                <span id="thresh-dificil">Difícil: ND X</span>
+                <span id="thresh-mortal">Mortal: ND X</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="bestiary" class="section">
+        <div class="controls">
+            <div class="control-group">
+                <label>Buscar Nome</label>
+                <input type="text" id="search-name" placeholder="Ex: Goblin..." onkeyup="filterBestiary()">
+            </div>
+            <div class="control-group">
+                <label>Filtrar por ND</label>
+                <select id="filter-nd" onchange="filterBestiary()"><option value="all">Todos</option></select>
+            </div>
+            <div class="control-group">
+                <label>Local/Tipo</label>
+                <select id="filter-loc" onchange="filterBestiary()">
+                    <option value="all">Todos</option>
+                    <option value="Ermos">Ermos</option>
+                    <option value="Masmorras">Masmorras</option>
+                    <option value="Reino dos Mortos">Reino dos Mortos</option>
+                    <option value="Duyshidakk">Duyshidakk</option>
+                    <option value="Puristas">Puristas</option>
+                    <option value="Dragões">Dragões</option>
+                    <option value="Tormenta">Tormenta</option>
+                    <option value="Sszzaazitas">Sszzaazitas</option>
+                    <option value="Trolls nobres">Trolls nobres</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="bestiary-table">
+                <thead><tr><th>Nome</th><th>ND</th><th>Tipo / Local</th><th>XP</th><th>Ações</th></tr></thead>
+                <tbody id="bestiary-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="xp" class="section">
+        <div class="xp-dashboard">
+            <div class="xp-card">
+                <h3>Nível Atual</h3>
+                <div class="value" id="party-lvl-disp">1</div>
+                <div id="levelup-alert" class="level-up-badge">SUBIR NÍVEL!</div>
+            </div>
+            <div class="xp-card">
+                <h3>XP Total</h3>
+                <div class="value" id="party-xp-disp">0</div>
+            </div>
+            <div class="xp-card">
+                <h3>Próximo Nível</h3>
+                <div class="value" style="font-size: 1.2rem; margin-top: 10px;" id="next-lvl-xp">1000</div>
+                <small>Faltam: <span id="xp-missing">1000</span></small>
+            </div>
+        </div>
+        <div class="controls" style="background: #eef2f5;">
+            <div class="control-group">
+                <label>Qtd. Jogadores</label>
+                <input type="number" id="xp-players-count" value="4" min="1" onchange="updateXPDisplay()">
+            </div>
+            <div class="control-group">
+                <label>Adicionar XP Manual</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="manual-xp-input" placeholder="Ex: 2000">
+                    <button class="action-btn" onclick="addManualXP()">+</button>
+                </div>
+            </div>
+        </div>
+        <h4>Registro de Ações</h4>
+        <div class="log-box" id="xp-log">
+            <div class="log-entry">> Sistema de XP pronto...</div>
+        </div>
+        <br>
+        <button class="secondary-btn" onclick="resetXP()">Resetar Tudo</button>
+    </div>
+</div>
+
+<script>
+    /* ================= DADOS E ESTADO ================= */
+    const xpTable = { 1: 0, 2: 1000, 3: 3000, 4: 6000, 5: 10000, 6: 15000, 7: 21000, 8: 28000, 9: 36000, 10: 45000, 11: 55000, 12: 66000, 13: 78000, 14: 91000, 15: 105000, 16: 120000, 17: 136000, 18: 153000, 19: 171000, 20: 190000 };
+
+    const monsters = [
+        { name: "Bandido", nd: 0.25, loc: "Ermos", type: "Humanoide (Humano)" },
+        { name: "Arauto de Thwor", nd: 4, loc: "Duyshidakk", type: "Humanoide (Humano)" },
+        { name: "Cascavel", nd: 0.25, loc: "Sszzaazitas", type: "Animal" },
+        { name: "Basilisco", nd: 4, loc: "Ermos", type: "Monstro" },
+        { name: "Glop", nd: 0.25, loc: "Masmorras", type: "Monstro" },
+        { name: "Capelão de guerra", nd: 4, loc: "Puristas", type: "Humanoide (Humano)" },
+        { name: "Goblin salteador", nd: 0.25, loc: "Duyshidakk", type: "Humanoide (Goblin)" },
+        { name: "Esqueleto de elite", nd: 4, loc: "Reino dos Mortos", type: "Morto-vivo" },
+        { name: "Rato gigante", nd: 0.25, loc: "Masmorras", type: "Animal" },
+        { name: "Ogro", nd: 4, loc: "Ermos", type: "Humanoide (Gigante)" },
+        { name: "Zumbi", nd: 0.25, loc: "Reino dos Mortos", type: "Morto-vivo" },
+        { name: "Urso-coruja", nd: 4, loc: "Ermos", type: "Monstro" },
+        { name: "Guarda de cidade", nd: 0.5, loc: "Ermos", type: "Humanoide (Humano)" },
+        { name: "Aparição", nd: 5, loc: "Reino dos Mortos", type: "Morto-vivo" },
+        { name: "Lobo", nd: 0.5, loc: "Ermos", type: "Animal" },
+        { name: "Capitão-baluarte", nd: 5, loc: "Puristas", type: "Humanoide (Humano)" },
+        { name: "Jiboia", nd: 0.5, loc: "Sszzaazitas", type: "Animal" },
+        { name: "Ganchador", nd: 5, loc: "Trolls nobres", type: "Monstro" },
+        { name: "Orc combatente", nd: 0.5, loc: "Masmorras", type: "Humanoide (Orc)" },
+        { name: "Hobgoblin mago de batalha", nd: 5, loc: "Duyshidakk", type: "Humanoide (Hobgoblin)" },
+        { name: "Recruta purista", nd: 0.5, loc: "Puristas", type: "Humanoide (Humano)" },
+        { name: "Orc mutante", nd: 5, loc: "Masmorras", type: "Humanoide (Orc)" },
+        { name: "Centauro combatente", nd: 1, loc: "Ermos", type: "Humanoide (Centauro)" },
+        { name: "Otyugh", nd: 5, loc: "Tormenta", type: "Monstro" },
+        { name: "Chefe bandido", nd: 1, loc: "Ermos", type: "Humanoide (Humano)" },
+        { name: "Serpe", nd: 5, loc: "Ermos", type: "Monstro" },
+        { name: "Gnoll saqueador", nd: 1, loc: "Ermos", type: "Humanoide (Gnoll)" },
+        { name: "Troll", nd: 5, loc: "Trolls nobres", type: "Monstro" },
+        { name: "Gorlogg", nd: 1, loc: "Ermos", type: "Animal" },
+        { name: "Engenho de guerra goblin", nd: 6, loc: "Duyshidakk", type: "Construto" },
+        { name: "Naja", nd: 1, loc: "Sszzaazitas", type: "Animal" },
+        { name: "Fintroll feitor", nd: 6, loc: "Trolls nobres", type: "Monstro (Finntroll)" },
+        { name: "Sargento da guarda", nd: 1, loc: "Ermos", type: "Humanoide (Humano)" },
+        { name: "Geraktril", nd: 6, loc: "Tormenta", type: "Monstro (Lefeu)" },
+        { name: "Soldado purista", nd: 1, loc: "Puristas", type: "Humanoide (Humano)" },
+        { name: "Mantícora", nd: 6, loc: "Masmorras", type: "Monstro" },
+        { name: "Trog", nd: 1, loc: "Ermos", type: "Humanoide (Trog)" },
+        { name: "Nagah mística", nd: 6, loc: "Sszzaazitas", type: "Humanoide (Nagah)" },
+        { name: "Aranha gigante", nd: 2, loc: "Masmorras", type: "Monstro" },
+        { name: "Centopeia-dragão", nd: 7, loc: "Masmorras", type: "Monstro" },
+        { name: "Enxame kobold", nd: 2, loc: "Dragões", type: "Monstro (Enxame)" },
+        { name: "Cultista de Sszzaas", nd: 7, loc: "Sszzaazitas", type: "Monstro (Medusa)" },
+        { name: "Esqueleto", nd: 2, loc: "Reino dos Mortos", type: "Morto-vivo" },
+        { name: "Dragão jovem", nd: 7, loc: "Dragões", type: "Monstro (Dragão)" },
+        { name: "Finntroll caçador", nd: 2, loc: "Trolls nobres", type: "Monstro (Finntroll)" },
+        { name: "Necromante", nd: 7, loc: "Reino dos Mortos", type: "Humanoide (Elfo)" },
+        { name: "Gárgula", nd: 2, loc: "Masmorras", type: "Construto" },
+        { name: "Devorador de medos", nd: 8, loc: "Duyshidakk", type: "Humanoide (Bugbear)" },
+        { name: "Gnoll filibusteiro", nd: 2, loc: "Ermos", type: "Humanoide (Gnoll)" },
+        { name: "Falange", nd: 8, loc: "Reino dos Mortos", type: "Morto-vivo (Bando)" },
+        { name: "Hobgoblin soldado", nd: 2, loc: "Duyshidakk", type: "Humanoide (Hobgoblin)" },
+        { name: "Reishid", nd: 8, loc: "Tormenta", type: "Monstro (Lefeu)" },
+        { name: "Lobo-das-cavernas", nd: 2, loc: "Ermos", type: "Animal" },
+        { name: "Cavaleiro do Leopardo", nd: 9, loc: "Puristas", type: "Humanoide (Humano)" },
+        { name: "Maníaco lefou", nd: 2, loc: "Tormenta", type: "Humanoide (Lefou)" },
+        { name: "Sombra de Thwor", nd: 9, loc: "Duyshidakk", type: "Humanoide (Hobgoblin)" },
+        { name: "Orc chefe", nd: 2, loc: "Masmorras", type: "Humanoide (Orc)" },
+        { name: "Troll das cavernas", nd: 9, loc: "Trolls nobres", type: "Monstro" },
+        { name: "Turba zumbi", nd: 2, loc: "Reino dos Mortos", type: "Morto-vivo (Bando)" },
+        { name: "Golem de ferro", nd: 10, loc: "Masmorras", type: "Construto" },
+        { name: "Centauro xamã", nd: 3, loc: "Ermos", type: "Humanoide (Centauro)" },
+        { name: "Sacerdote de Aharadak", nd: 10, loc: "Tormenta", type: "Humanoide (Humano)" },
+        { name: "Cão do inferno", nd: 3, loc: "Ermos", type: "Espírito" },
+        { name: "Tirano do Terceiro", nd: 10, loc: "Dragões", type: "Humanoide (Humano)" },
+        { name: "Dragão filhote", nd: 3, loc: "Dragões", type: "Monstro (Dragão)" },
+        { name: "Dragão adulto", nd: 11, loc: "Dragões", type: "Monstro (Dragão)" },
+        { name: "Goblin engenhoqueiro", nd: 3, loc: "Duyshidakk", type: "Humanoide (Goblin)" },
+        { name: "Hidra", nd: 11, loc: "Sszzaazitas", type: "Monstro" },
+        { name: "Grifo", nd: 3, loc: "Ermos", type: "Monstro" },
+        { name: "Vampiro", nd: 12, loc: "Reino dos Mortos", type: "Morto-vivo" },
+        { name: "Guerreiro de chifres", nd: 3, loc: "Masmorras", type: "Espírito (Abissal)" },
+        { name: "Lagash", nd: 13, loc: "Sszzaazitas", type: "Monstro" },
+        { name: "Sargento-mor", nd: 3, loc: "Puristas", type: "Humanoide (Humano)" },
+        { name: "Colosso supremo", nd: 14, loc: "Puristas", type: "Construto" },
+        { name: "Sucuri", nd: 3, loc: "Sszzaazitas", type: "Animal" },
+        { name: "Dragão venerável", nd: 15, loc: "Dragões", type: "Monstro (Dragão)" },
+        { name: "Nagah guardião", nd: 3, loc: "Sszzaazitas", type: "Humanoide (Nagah)" },
+        { name: "Thuwarokk", nd: 16, loc: "Tormenta", type: "Monstro (Lefeu)" },
+        { name: "Uktril", nd: 3, loc: "Tormenta", type: "Monstro (Lefeu)" },
+        { name: "Dragão-rei", nd: 20, loc: "Dragões", type: "Monstro (Dragão)" }
+    ];
+
+    let partyState = { level: 1, currentXP: 0, players: 4 };
+
+    if(localStorage.getItem('t20_partyState')) {
+        partyState = JSON.parse(localStorage.getItem('t20_partyState'));
+        document.getElementById('calc-level').value = partyState.level;
+        document.getElementById('calc-players').value = partyState.players;
+        document.getElementById('xp-players-count').value = partyState.players;
+    }
+
+    /* ================= SISTEMA DE ABAS ================= */
+    function showTab(id, btn) {
+        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(btn) btn.classList.add('active');
+        else document.getElementById('tab-btn-' + id).classList.add('active');
+    }
+
+    /* ================= BESTIÁRIO E CALCULADORA ================= */
+    function formatND(nd) { if (nd === 0.25) return "1/4"; if (nd === 0.5) return "1/2"; return nd; }
+
+    function filterBestiary() {
+        const txt = document.getElementById('search-name').value.toLowerCase();
+        const ndVal = document.getElementById('filter-nd').value;
+        const locVal = document.getElementById('filter-loc').value;
+        const filtered = monsters.filter(m => {
+            return m.name.toLowerCase().includes(txt) && 
+                   (ndVal === "all" || m.nd == ndVal) && 
+                   (locVal === "all" || m.loc === locVal);
+        });
+        renderBestiary(filtered);
+    }
+
+    function populateNDSelect() {
+        const select = document.getElementById('filter-nd');
+        const uniqueNDs = [...new Set(monsters.map(m => m.nd))].sort((a,b)=>a-b);
+        uniqueNDs.forEach(nd => {
+            const opt = document.createElement('option');
+            opt.value = nd; opt.textContent = `ND ${formatND(nd)}`;
+            select.appendChild(opt);
+        });
+    }
+
+    function getMathND(nd) { return nd === 0.25 ? -3 : nd === 0.5 ? -1 : nd; }
+
+    function calculateMonstersStr(targetND, monsterND) {
+        const diff = targetND - monsterND;
+        if (diff < 0) return "-";
+        if (diff === 0) return "1";
+        const exact = Math.pow(2, diff / 2);
+        const rounded = Math.round(exact);
+        return Math.abs(exact - rounded) > 0.3 ? `${Math.floor(exact)} a ${Math.ceil(exact)}` : rounded.toString();
+    }
+
+   /* ================= BESTIÁRIO ================= */
+    function renderBestiary(list) {
+        const tbody = document.getElementById('bestiary-body');
+        tbody.innerHTML = '';
+        list.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${m.name}</strong></td>
+                <td>${formatND(m.nd)}</td>
+                <td>${m.type} <br><small style="color:#666">${m.loc}</small></td>
+                <td>${m.nd * 1000} XP</td>
+                <td class="action-buttons">
+                    <button class="add-btn btn-xp" style="background: #27ae60;" title="Adicionar ao Encontro" onclick="addFromBestiary('${m.name}', ${m.nd})">➕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    /* ================= MONTADOR DE ENCONTROS ================= */
+    let currentEncounter = [];
+
+    function addManualMonster() {
+        let nd = parseFloat(document.getElementById('builder-nd').value);
+        let qty = parseInt(document.getElementById('builder-qty').value);
+        if(qty > 0) {
+            currentEncounter.push({ name: `Monstro ND ${formatND(nd)}`, nd: nd, qty: qty });
+            updateCalc();
+        }
+    }
+
+    function addFromBestiary(name, nd) {
+        let existing = currentEncounter.find(e => e.name === name);
+        if(existing) existing.qty++;
+        else currentEncounter.push({ name: name, nd: nd, qty: 1 });
+        
+        showTab('calc'); 
+        updateCalc();
+    }
+
+    function removeMonster(index) {
+        currentEncounter.splice(index, 1);
+        updateCalc();
+    }
+
+    function clearEncounter() {
+        currentEncounter = [];
+        updateCalc();
+    }
+
+    function rewardEncounterXP() {
+        // Volta a fórmula original e correta: ND * 1000 * Quantidade
+        let totalXP = currentEncounter.reduce((acc, m) => acc + (m.nd * 1000 * m.qty), 0);
+        addXP(totalXP, "Batalha Superada");
+        clearEncounter();
+        showTab('xp'); 
+    }
+
+   function updateCalc() {
+        let lvl = parseInt(document.getElementById('calc-level').value) || 1;
+        let plr = parseInt(document.getElementById('calc-players').value) || 4;
+        
+        if (lvl > 20) { lvl = 20; document.getElementById('calc-level').value = 20; }
+        if (lvl < 1) { lvl = 1; document.getElementById('calc-level').value = 1; }
+        if (plr < 1) { plr = 1; document.getElementById('calc-players').value = 1; }
+
+        partyState.level = lvl; partyState.players = plr;
+        saveState(); updateXPDisplay();
+
+        // 1. Calcular Limites do Grupo
+        let t = lvl;
+        if (plr === 1) t -= 2; else if (plr <= 3) t -= 1; else if (plr >= 5 && plr <= 6) t += 1;
+        else if (plr >= 7 && plr <= 8) t += 2; else if (plr >= 9) t += 3;
+        const targets = { facil: t - 2, normal: t, dificil: t + 1, mortal: t + 2 };
+
+        document.getElementById('thresh-facil').innerText = `Fácil: ND ${formatND(targets.facil)}`;
+        document.getElementById('thresh-normal').innerText = `Normal: ND ${formatND(targets.normal)}`;
+        document.getElementById('thresh-dificil').innerText = `Difícil: ND ${formatND(targets.dificil)}`;
+        document.getElementById('thresh-mortal').innerText = `Mortal: ND ${formatND(targets.mortal)}`;
+
+        const listDiv = document.getElementById('encounter-list');
+        listDiv.innerHTML = '';
+        let totalPower = 0;
+        let totalXP = 0;
+
+        if (currentEncounter.length === 0) {
+            listDiv.innerHTML = '<div style="color: #aaa; text-align: center; padding: 5px;">Nenhuma ameaça selecionada. Vá no Bestiário ou adicione acima.</div>';
+            document.getElementById('encounter-diff-badge').innerText = "-";
+            document.getElementById('encounter-diff-badge').style.color = "#777";
+            document.getElementById('encounter-final-nd').innerText = "0";
+            document.getElementById('btn-encounter-xp').style.display = "none";
+            return;
+        }
+
+        currentEncounter.forEach((m, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = "display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ddd;";
+            itemDiv.innerHTML = `
+                <span><strong>${m.qty}x</strong> ${m.name} <small style="color:#666;">(ND ${formatND(m.nd)})</small></span>
+                <button class="secondary-btn" style="background:#e63946; padding: 2px 8px; margin-left:10px;" onclick="removeMonster(${index})">X</button>
+            `;
+            listDiv.appendChild(itemDiv);
+
+            // Matemática Exponencial Correta (Tormenta20 JdA)
+            totalPower += m.qty * Math.pow(2, getMathND(m.nd) / 2);
+            // XP Linear Correta
+            totalXP += m.nd * 1000 * m.qty;
+        });
+
+        // Converte o poder total de volta para ND
+        let finalND = 2 * Math.log2(totalPower);
+        
+        // Formata a exibição do ND exato
+        let displayND = finalND <= -2 ? "1/4" : finalND <= -0.5 ? "1/2" : finalND;
+        let ndText = typeof displayND === "string" ? displayND : (displayND % 1 === 0 ? displayND : displayND.toFixed(1));
+        document.getElementById('encounter-final-nd').innerText = ndText;
+
+        // Avaliação de Dificuldade com Transições
+        let diffText = ""; let diffColor = "";
+        
+        if (finalND <= targets.facil) { diffText = "Fácil (ou menor)"; diffColor = "#2ecc71"; }
+        else if (finalND < targets.normal - 0.2) { diffText = "Entre Fácil e Normal"; diffColor = "#8e44ad"; }
+        else if (finalND <= targets.normal + 0.2) { diffText = "Normal"; diffColor = "#f1c40f"; }
+        else if (finalND < targets.dificil - 0.2) { diffText = "Entre Normal e Difícil"; diffColor = "#e67e22"; }
+        else if (finalND <= targets.dificil + 0.2) { diffText = "Difícil"; diffColor = "#d35400"; }
+        else if (finalND < targets.mortal) { diffText = "Entre Difícil e Mortal"; diffColor = "#c0392b"; }
+        else { diffText = "Mortal"; diffColor = "#e74c3c"; }
+
+        document.getElementById('encounter-diff-badge').innerText = diffText;
+        document.getElementById('encounter-diff-badge').style.color = diffColor;
+
+        document.getElementById('xp-total-val').innerText = totalXP;
+        document.getElementById('btn-encounter-xp').style.display = "block";
+    }
+
+    function updateXPDisplay() {
+        const curXP = partyState.currentXP;
+        const nextXP = partyState.level >= 20 ? "MAX" : xpTable[partyState.level + 1] || (partyState.level * (partyState.level-1) * 500);
+
+        document.getElementById('party-lvl-disp').textContent = partyState.level;
+        document.getElementById('party-xp-disp').textContent = curXP.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+        
+        if (nextXP === "MAX") {
+            document.getElementById('next-lvl-xp').textContent = "Lenda";
+            document.getElementById('xp-missing').textContent = "-";
+        } else {
+            document.getElementById('next-lvl-xp').textContent = nextXP.toLocaleString('pt-BR');
+            document.getElementById('xp-missing').textContent = Math.max(0, nextXP - curXP).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+            document.getElementById('levelup-alert').style.display = curXP >= nextXP ? 'block' : 'none';
+        }
+    }
+
+    function addXP(amount, reason) {
+        const players = parseInt(document.getElementById('xp-players-count').value) || 1;
+        const xpPerPlayer = amount / players; 
+        partyState.currentXP += xpPerPlayer;
+        saveState(); updateXPDisplay();
+        
+        const displayXP = xpPerPlayer % 1 !== 0 ? xpPerPlayer.toFixed(2).replace('.00', '') : xpPerPlayer;
+        log(`+${displayXP} XP/jogador (${reason})`);
+    }
+
+    function defeatMonster(name, nd) {
+        const xp = nd * 1000;
+        if(confirm(`O grupo derrotou ${name} (ND ${formatND(nd)})?\nTotal XP: ${xp}`)) {
+            addXP(xp, `Derrotou ${name}`);
+        }
+    }
+
+    function addManualXP() {
+        const val = parseFloat(document.getElementById('manual-xp-input').value.replace(',', '.'));
+        if(!val) return;
+        addXP(val, "Bônus Manual");
+        document.getElementById('manual-xp-input').value = '';
+    }
+
+    function log(msg) {
+        const box = document.getElementById('xp-log');
+        const div = document.createElement('div');
+        div.className = 'log-entry'; div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        box.prepend(div);
+    }
+
+    function saveState() { localStorage.setItem('t20_partyState', JSON.stringify(partyState)); }
+    function resetXP() {
+        if(confirm("Tem certeza? Isso zerará XP e Nível.")) {
+            partyState.currentXP = 0; partyState.level = 1;
+            saveState(); location.reload();
+        }
+    }
+
+    /* ================= INIT ================= */
+    populateNDSelect();
+    updateCalc();
+    renderBestiary(monsters);
+    updateXPDisplay();
+
+</script>
+</body>
+</html>
